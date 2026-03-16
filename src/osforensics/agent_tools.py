@@ -12,13 +12,16 @@ from typing import Any, Dict
 
 from .browser import detect_browsers
 from .classifier import classify_findings
-from .deleted import detect_deleted
+from .config import analyze_configs
+from .deleted import detect_deleted, carve_files
 from .detector import detect_os, detect_tools
 from .extractor import FilesystemAccessor
 from .memory import analyze_memory
+from .multimedia import analyze_multimedia
 from .persistence import detect_persistence
 from .report import build_report
 from .services import detect_services
+from .tails import analyze_tails
 from .timeline import build_timeline
 
 # ── Tool registry ──────────────────────────────────────────────────────────────
@@ -69,9 +72,9 @@ def analyze_filesystem(path: str) -> dict:
         return {
             "os": report.os_info.dict() if report.os_info else {},
             "total_findings": len(report.findings),
-            "critical": sum(1 for f in report.findings if f.severity == "critical"),
-            "high":     sum(1 for f in report.findings if f.severity == "high"),
-            "medium":   sum(1 for f in report.findings if f.severity == "medium"),
+            # ToolFinding uses .risk (high/dual-use/…), not .severity
+            "high_risk":  sum(1 for f in report.findings if f.risk == "high"),
+            "dual_use":   sum(1 for f in report.findings if f.risk == "dual-use"),
             "timeline_events": len(report.timeline),
             "deleted_files":   len(report.deleted),
             "persistence_items": len(report.persistence),
@@ -95,9 +98,10 @@ def get_timeline(path: str) -> dict:
     try:
         fs = FilesystemAccessor(path)
         tl = build_timeline(fs)
-        events = [e.dict() for e in tl]
-        critical = [e for e in events if e["severity"] == "critical"]
-        high     = [e for e in events if e["severity"] == "high"]
+        # build_timeline returns List[Dict] — no .dict() call needed
+        events   = [e if isinstance(e, dict) else e.dict() for e in tl]
+        critical = [e for e in events if e.get("severity") == "critical"]
+        high     = [e for e in events if e.get("severity") == "high"]
         return {
             "total_events":    len(events),
             "critical_events": len(critical),
@@ -121,13 +125,14 @@ def get_deleted_files(path: str) -> dict:
     try:
         fs = FilesystemAccessor(path)
         deleted = detect_deleted(fs)
-        items = [f.dict() for f in deleted]
-        suspicious = [i for i in items if i["severity"] in ("critical", "high")]
+        # detect_deleted returns List[Dict] — normalise defensively
+        items = [f if isinstance(f, dict) else f.dict() for f in deleted]
+        suspicious = [i for i in items if i.get("severity") in ("critical", "high")]
         return {
-            "total_deleted":   len(items),
+            "total_deleted":    len(items),
             "suspicious_count": len(suspicious),
-            "suspicious":      suspicious,
-            "all_files":       items[:40],
+            "suspicious":       suspicious,
+            "all_files":        items[:40],
         }
     except Exception as e:
         return {"error": str(e)}
@@ -145,7 +150,8 @@ def get_persistence_mechanisms(path: str) -> dict:
     try:
         fs = FilesystemAccessor(path)
         pers = detect_persistence(fs)
-        items = [p.dict() for p in pers]
+        # detect_persistence returns plain dicts — no .dict() needed
+        items = [p if isinstance(p, dict) else p.dict() for p in pers]
         high_sev = [i for i in items if i["severity"] in ("critical", "high")]
         categories: Dict[str, int] = {}
         for i in items:
@@ -164,10 +170,12 @@ def get_persistence_mechanisms(path: str) -> dict:
 @_tool(
     "get_browser_artifacts",
     (
-        "Extract browser forensics: browsing history, bookmarks, cookies, "
-        "download records, and installed extensions from Chrome, Firefox, etc."
+        "Extract browser forensics (history, downloads, cookies, extensions) from "
+        "user profiles. Path MUST be a specific directory (e.g. /home/user or /), "
+        "NOT a wildcard like /home/user/* or a specific file like cookies.sqlite. "
+        "The tool automatically scans for browser profiles within the given root."
     ),
-    {"path": "str: absolute path to a mounted filesystem directory"},
+    {"path": "str: absolute path to a mounted filesystem directory (root or home)"},
 )
 def get_browser_artifacts(path: str) -> dict:
     try:
@@ -243,9 +251,9 @@ def analyze_memory_dump(dump_path: str) -> dict:
 @_tool(
     "search_file_content",
     (
-        "Search for a text pattern inside files at a given path. Useful for "
-        "finding credentials, c2 domains, config values, or specific strings "
-        "without running a full analysis."
+        "Search for a text pattern inside files at a given path. "
+        "Path must be a specific directory or file (NO wildcards like *). "
+        "Useful for finding credentials, c2 domains, or specific strings."
     ),
     {
         "path":    "str: absolute path to directory or file to search",
@@ -253,6 +261,8 @@ def analyze_memory_dump(dump_path: str) -> dict:
     },
 )
 def search_file_content(path: str, pattern: str) -> dict:
+    if "*" in path:
+        return {"error": f"Wildcards (*) are not supported in path: {path}. Please provide a specific directory or file path."}
     p = Path(path).resolve()
     if not p.exists():
         return {"error": f"Path does not exist: {path}"}
@@ -286,6 +296,112 @@ def search_file_content(path: str, pattern: str) -> dict:
         }
     except subprocess.TimeoutExpired:
         return {"error": "Search timed out — directory may be too large"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@_tool(
+    "analyze_multimedia",
+    (
+        "Discover and analyze multimedia files (images, video, audio) for metadata, "
+        "GPS locations, and steganography indicators (hidden data)."
+    ),
+    {"path": "str: absolute path to a mounted filesystem directory"},
+)
+def analyze_multimedia_tool(path: str) -> dict:
+    try:
+        fs = FilesystemAccessor(path)
+        findings = analyze_multimedia(fs)
+        # Summarize for the agent
+        critical = [f for f in findings if f.get("severity") == "critical"]
+        high     = [f for f in findings if f.get("severity") == "high"]
+        gps_files = [f for f in findings if f.get("gps")]
+        return {
+            "total_media_found": len(findings),
+            "critical_issues":   len(critical),
+            "high_issues":       len(high),
+            "files_with_gps":    len(gps_files),
+            "samples":           findings[:15],
+            "critical":          critical[:10],
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@_tool(
+    "analyze_tails_os",
+    (
+        "Run specialized forensic checks for Tails OS indicators, persistence "
+        "usage, Tor activity, and amnesic runtime traces."
+    ),
+    {"path": "str: absolute path to a mounted filesystem directory"},
+)
+def analyze_tails_tool(path: str) -> dict:
+    try:
+        fs = FilesystemAccessor(path)
+        # We can pass existing findings if we had them, but for a standalone call, None is fine
+        tails_findings = analyze_tails(fs)
+        return {
+            "tails_detected": any(f["category"] == "environment" and f["severity"] == "high" for f in tails_findings),
+            "findings": tails_findings,
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@_tool(
+    "audit_security_configs",
+    (
+        "Audit critical system configurations (SSH, sudo, firewall, PAM, sysctl) "
+        "for security weaknesses, misconfigurations, and rogue entries."
+    ),
+    {"path": "str: absolute path to a mounted filesystem directory"},
+)
+def audit_security_configs_tool(path: str) -> dict:
+    try:
+        fs = FilesystemAccessor(path)
+        findings = analyze_configs(fs)
+        critical = [f for f in findings if f.get("severity") == "critical"]
+        high     = [f for f in findings if f.get("severity") == "high"]
+        # Group by category
+        by_cat = {}
+        for f in findings:
+            cat = f.get("category", "general")
+            by_cat[cat] = by_cat.get(cat, 0) + 1
+
+        return {
+            "total_findings": len(findings),
+            "critical": len(critical),
+            "high": len(high),
+            "by_category": by_cat,
+            "top_findings": findings[:20],
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@_tool(
+    "carve_deleted_files",
+    (
+        "Attempt to carve deleted files from a raw disk image using file signatures. "
+        "This is a slow, deep-scan operation that works even if the filesystem is damaged."
+    ),
+    {
+        "image_path": "str: absolute path to the raw disk image file",
+        "groups": "list: optional list of file groups to carve (image, document, executable, database, archive, video, audio, text)",
+    },
+)
+def carve_deleted_files_tool(image_path: str, groups: list = None) -> dict:
+    try:
+        fs = FilesystemAccessor(image_path)
+        # Use a standardized recovery directory
+        out_dir = "/tmp/osforensics_carved"
+        findings = carve_files(fs, out_dir, sig_groups=groups, max_files=50)
+        return {
+            "total_carved": len([f for f in findings if f.get("type") == "carved"]),
+            "output_directory": out_dir,
+            "findings": findings,
+        }
     except Exception as e:
         return {"error": str(e)}
 

@@ -1,5 +1,6 @@
 # manually added
 mnt/
+tails_collected*
 
 # Python-generated files
 __pycache__/
@@ -11,7 +12,7 @@ wheels/
 
 # Virtual environments
 .venv
-
+.env
 # Node / UI
 ui/node_modules/
 ui/dist/

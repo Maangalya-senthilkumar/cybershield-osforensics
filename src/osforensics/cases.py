@@ -71,6 +71,49 @@ def _save(case: Dict) -> None:
     os.replace(tmp, p)   # atomic on POSIX
 
 
+def _ensure_legal_sections(case: Dict) -> None:
+    """Backfill legal/audit sections for older case.json files."""
+    if "chain_of_custody" not in case or not isinstance(case.get("chain_of_custody"), list):
+        case["chain_of_custody"] = []
+    if "audit_log" not in case or not isinstance(case.get("audit_log"), list):
+        case["audit_log"] = []
+
+
+def _next_evidence_id(case: Dict) -> str:
+    """Generate a stable, human-readable evidence id like EV-001."""
+    idx = len(case.get("data_sources", [])) + 1
+    return f"EV-{idx:03d}"
+
+
+def _append_audit_event(case: Dict, action: str, actor: str = "system", details: Optional[Dict[str, Any]] = None) -> None:
+    case.setdefault("audit_log", []).append({
+        "timestamp": _now(),
+        "actor": actor,
+        "action": action,
+        "details": details or {},
+    })
+
+
+def _append_custody_event(
+    case: Dict,
+    evidence_id: str,
+    action: str,
+    collected_by: str,
+    verified_by: Optional[str] = None,
+    notes: str = "",
+    details: Optional[Dict[str, Any]] = None,
+) -> None:
+    case.setdefault("chain_of_custody", []).append({
+        "timestamp": _now(),
+        "evidence_id": evidence_id,
+        "action": action,
+        "collected_by": collected_by,
+        "verified_by": verified_by or "",
+        "notes": notes,
+        "details": details or {},
+    })
+
+
 # ── Public API ────────────────────────────────────────────────────────────────
 
 def list_cases() -> List[Dict]:
@@ -119,13 +162,18 @@ def create_case(
         "created_at":   now,
         "updated_at":   now,
         "data_sources": [],
+        "chain_of_custody": [],
+        "audit_log": [],
     }
+    _append_audit_event(case, "case_created", actor=(examiner.strip() or "system"), details={"name": name.strip(), "number": number.strip()})
     _save(case)
     return case
 
 
 def get_case(case_id: str) -> Dict:
-    return _load(case_id)
+    case = _load(case_id)
+    _ensure_legal_sections(case)
+    return case
 
 
 def update_case(
@@ -136,10 +184,17 @@ def update_case(
     description: Optional[str] = None,
 ) -> Dict:
     case = _load(case_id)
+    _ensure_legal_sections(case)
     if name        is not None: case["name"]        = name.strip()
     if number      is not None: case["number"]      = number.strip()
     if examiner    is not None: case["examiner"]    = examiner.strip()
     if description is not None: case["description"] = description.strip()
+    _append_audit_event(case, "case_updated", actor="system", details={
+        "name_changed": name is not None,
+        "number_changed": number is not None,
+        "examiner_changed": examiner is not None,
+        "description_changed": description is not None,
+    })
     case["updated_at"] = _now()
     _save(case)
     return case
@@ -157,17 +212,46 @@ def add_data_source(
     path: str,
     label: str,
     report: Dict[str, Any],
+    evidence: Optional[Dict[str, Any]] = None,
+    provenance: Optional[Dict[str, Any]] = None,
+    actor: str = "system",
+    verified_by: Optional[str] = None,
 ) -> Dict:
     """Attach a data source with its analysis report to the given case."""
     case = _load(case_id)
+    _ensure_legal_sections(case)
+    evidence_meta = evidence or {}
+    evidence_id = evidence_meta.get("evidence_id") or _next_evidence_id(case)
     source: Dict = {
         "id":       str(uuid.uuid4()),
         "path":     path,
         "label":    (label.strip() or os.path.basename(path)) or path,
         "added_at": _now(),
         "report":   report,
+        "evidence": {
+            "evidence_id": evidence_id,
+            "acquisition_time": evidence_meta.get("acquisition_time") or _now(),
+            "hashes": evidence_meta.get("hashes") or {},
+        },
+        "provenance": provenance or {
+            "source": path,
+            "extraction_method": "filesystem_accessor",
+            "original_path": path,
+        },
     }
     case["data_sources"].append(source)
+
+    _append_custody_event(
+        case,
+        evidence_id=evidence_id,
+        action="uploaded_to_forensic_system",
+        collected_by=actor,
+        verified_by=verified_by,
+        notes="Evidence ingested and analyzed",
+        details={"source_id": source["id"], "path": path, "label": source["label"]},
+    )
+    _append_audit_event(case, "source_added", actor=actor, details={"source_id": source["id"], "path": path, "label": source["label"], "evidence_id": evidence_id})
+
     case["updated_at"] = _now()
     _save(case)
     return source
@@ -175,9 +259,45 @@ def add_data_source(
 
 def remove_data_source(case_id: str, source_id: str) -> None:
     case = _load(case_id)
+    _ensure_legal_sections(case)
+    removed = None
+    kept = []
+    for s in case["data_sources"]:
+        if s.get("id") == source_id and removed is None:
+            removed = s
+            continue
+        kept.append(s)
     before = len(case["data_sources"])
-    case["data_sources"] = [s for s in case["data_sources"] if s["id"] != source_id]
+    case["data_sources"] = kept
     if len(case["data_sources"]) == before:
         raise FileNotFoundError(f"Source {source_id!r} not found in case {case_id!r}")
+    if removed:
+        ev = ((removed.get("evidence") or {}).get("evidence_id") or "")
+        if ev:
+            _append_custody_event(
+                case,
+                evidence_id=ev,
+                action="removed_from_case",
+                collected_by="system",
+                notes="Evidence source removed from case",
+                details={"source_id": source_id, "path": removed.get("path", "")},
+            )
+        _append_audit_event(case, "source_removed", actor="system", details={"source_id": source_id, "path": removed.get("path", ""), "evidence_id": ev})
     case["updated_at"] = _now()
     _save(case)
+
+
+def append_case_audit(case_id: str, action: str, actor: str = "system", details: Optional[Dict[str, Any]] = None) -> Dict:
+    """Append a generic audit event to a case and return the event."""
+    case = _load(case_id)
+    _ensure_legal_sections(case)
+    ev = {
+        "timestamp": _now(),
+        "actor": actor,
+        "action": action,
+        "details": details or {},
+    }
+    case["audit_log"].append(ev)
+    case["updated_at"] = _now()
+    _save(case)
+    return ev

@@ -1,4 +1,4 @@
-"""ReAct-pattern investigation agent backed by a local Ollama LLM.
+"""ReAct-pattern investigation agent backed by Ollama.
 
 Architecture
 ------------
@@ -18,23 +18,47 @@ Architecture
 
 The run() method is a generator that yields event dicts so the API layer
 can stream them to the frontend via SSE as they happen.
+
+Setup
+-----
+    uv pip install ollama
 """
 from __future__ import annotations
 
 import json
 import os
 import re
+import time
 from typing import Any, Dict, Generator, List, Optional, Tuple
 
-import requests
-
+import ollama
+from dotenv import load_dotenv
+load_dotenv(".env")
 from . import agent_memory as memory
 from . import agent_tools as tools
 
-_DEFAULT_OLLAMA_URL = "http://lab:11434"
-OLLAMA_URL   = os.environ.get("OLLAMA_HOST", _DEFAULT_OLLAMA_URL).rstrip("/")
-DEFAULT_MODEL = "qwen2.5:7b"
-MAX_OBS_CHARS = 4000   # truncate large tool outputs before re-feeding to LLM
+import requests
+
+def _get_default_ollama_url():
+    url = os.environ.get("OLLAMA_URL")
+    if url:
+        return url
+    # Try localhost first
+    try:
+        # Using a direct socket check or requests with short timeout
+        resp = requests.get("http://localhost:11434/api/tags", timeout=0.5)
+        if resp.status_code == 200:
+            return "http://localhost:11434/"
+    except Exception:
+        pass
+    # Fallback to the specific remote IP
+    return "http://100.73.207.125:11434/"
+
+# ── Ollama configuration ───────────────────────────────────────────────────────
+
+OLLAMA_URL     = _get_default_ollama_url()
+DEFAULT_MODEL  = os.getenv("OLLAMA_MODEL", "qwen3.5")
+MAX_OBS_CHARS  = 4000   # truncate large tool outputs before re-feeding to LLM
 
 # ── System prompt ──────────────────────────────────────────────────────────────
 
@@ -55,25 +79,29 @@ Work like a real forensic investigator:
 5. Cite specific values (file paths, PIDs, IPs, timestamps) in your answer
 
 ## RESPONSE FORMAT
-Respond ONLY with a valid JSON object — no markdown, no prose outside the JSON.
+Respond ONLY with a valid JSON object. Do not include any prose outside the JSON.
+All detailed reasoning and reports should be written in Markdown INSIDE the JSON fields.
 
 When you need to call a tool:
 {{
-  "thought": "Your reasoning: what evidence you need and why this tool",
+  "thought": "Your reasoning in Markdown",
   "action": "tool_name",
   "args": {{"param": "value"}}
 }}
 
-When you have enough evidence to answer:
+When you have enough evidence to answer (or for general/normal chat questions):
 {{
-  "thought": "Summary of everything gathered",
+  "thought": "Final summary of investigation steps or response reasoning",
   "action": "ANSWER",
-  "answer": "Detailed forensic findings with specific evidence citations and IOCs"
+  "answer": "DETAILED FORENSIC REPORT OR RESPONSE IN MARKDOWN FORMAT. Use headers, lists, and bold text for clarity."
 }}
 
 ## CONSTRAINTS
-- Always use at least one tool before answering
+- User's home directory is /home/dragon/ — all file paths are relative to this root
+- Use forensic tools if the query requires evidence gathering; otherwise, answer directly
 - Be specific — cite actual data values from tool results
+- Check for chrome and brave browser artifacts, as well as common persistence locations
+- DO NOT use wildcards (like '*') in file paths — tools expect specific paths or directory roots
 - If a tool returns an error, try an alternative approach or explain the limitation
 - Maximum {max_steps} investigation steps, then provide your best analysis
 """
@@ -93,137 +121,81 @@ def _system_prompt(max_steps: int) -> str:
 
 # ── Ollama helpers ─────────────────────────────────────────────────────────────
 
-def _ollama_chat(messages: List[dict], model: str, temperature: float = 0.1) -> str:
-    """Call the Ollama /api/chat endpoint and return the assistant content."""
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/chat",
-        json={
-            "model":   model,
-            "messages": messages,
-            "stream":  False,
-            "options": {"temperature": temperature, "num_predict": 2048},
-        },
-        timeout=180,
-    )
-    resp.raise_for_status()
-    return resp.json()["message"]["content"]
+def _build_client() -> ollama.Client:
+    """Return an Ollama Client instance."""
+    return ollama.Client(host=OLLAMA_URL)
 
 
-def _sanitize_escapes(text: str) -> str:
-    r"""Remove backslashes before characters that are not valid JSON escape targets.
+def ollama_chat(
+    messages: List[dict],
+    model: str,
+    client: ollama.Client,
+    use_json: bool = True,
+) -> str:
+    """Send a conversation to Ollama and return the assistant text."""
+    options = {"temperature": 0.1}
+    
+    if use_json:
+        response = client.chat(
+            model=model,
+            messages=messages,
+            format="json",
+            options=options,
+        )
+    else:
+        response = client.chat(
+            model=model,
+            messages=messages,
+            options=options,
+        )
+    return response["message"]["content"]
 
-    LLMs commonly emit  \'  inside JSON strings, which is illegal in JSON.
-    Valid JSON escape sequences are: \" \\ \/ \b \f \n \r \t \uXXXX.
-    Anything else (e.g. \' \! \,) has its backslash dropped.
-    """
+
+# ── JSON parsing ───────────────────────────────────────────────────────────────
+
+def sanitize_escapes(text: str) -> str:
+    r"""Remove backslashes before characters that are not valid JSON escape targets."""
     return re.sub(r'\\([^"\\/bfnrtu\n\r]|u(?![0-9a-fA-F]{4}))', r'\1', text)
 
 
-def _parse_json(text: str) -> dict:
+def parse_json(text: str) -> dict:
     """Extract and parse the JSON object from an LLM response.
-
-    Tolerates: markdown code fences, invalid escape sequences (e.g. \'),
-    truncated responses (token-limit cut-off), and extra whitespace.
+    
+    If no valid JSON is found, returns a default 'ANSWER' structure 
+    using the raw text as the answer.
     """
-    text = text.strip()
-    # Strip ```json ... ``` fences if present
-    if text.startswith("```"):
-        text = re.sub(r"^```[a-z]*\n?", "", text)
-        text = re.sub(r"\n?```\s*$", "", text.strip())
+    text_stripped = text.strip()
+    
+    # Try to find content inside markdown code blocks first
+    m_code = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", text_stripped, re.DOTALL)
+    target = m_code.group(1) if m_code else None
+    
+    if not target:
+        # Fallback: search for the outermost braces
+        m_braces = re.search(r"(\{.*\})", text_stripped, re.DOTALL)
+        target = m_braces.group(1) if m_braces else None
 
-    # Sanitize invalid escape sequences before any JSON parse attempt
-    text = _sanitize_escapes(text)
-
-    # Try to find and parse a complete { ... } block
-    m = re.search(r"\{.*\}", text, re.DOTALL)
-    if m:
+    if target:
+        target = sanitize_escapes(target)
         try:
-            return json.loads(m.group())
+            return json.loads(target)
         except json.JSONDecodeError:
-            pass
+            # One last try: remove anything before the first { and after the last }
+            try:
+                start = target.find('{')
+                end = target.rfind('}') + 1
+                if start != -1 and end > 0:
+                    return json.loads(target[start:end])
+            except Exception:
+                pass
 
-    # Response was truncated — find the opening brace, heal, then parse
-    start = text.find("{")
-    if start != -1:
-        fragment = text[start:]
-        healed = _heal_json(fragment)
-        try:
-            return json.loads(healed)
-        except json.JSONDecodeError:
-            pass
-
-    raise ValueError(f"No valid JSON in LLM response: {text[:300]!r}")
-
-
-def _heal_json(fragment: str) -> str:
-    """Best-effort: close unclosed strings and braces in a truncated JSON object.
-
-    Handles three truncation scenarios:
-      A) value string cut off mid-way  → close the string, then close braces
-      B) key string cut off            → drop the dangling key, close braces
-      C) value missing after colon     → drop the dangling key+colon, close braces
-    """
-    in_string           = False
-    escape              = False
-    depth               = 0
-    last_colon_pos      = -1  # index of last bare ':' at top-level
-    last_complete_pos   =  0  # index just after last fully closed key-value pair
-    open_string_is_val  = False  # True when current open string is a value
-    last_non_ws         = ""    # last non-ws char seen outside strings
-
-    for i, ch in enumerate(fragment):
-        if escape:
-            escape = False
-            continue
-        if ch == "\\" and in_string:
-            escape = True
-            continue
-        if ch == '"':
-            if not in_string:
-                open_string_is_val = (last_non_ws == ":")
-            in_string = not in_string
-            continue
-        if not in_string:
-            if ch == "{":
-                depth += 1
-                last_non_ws = ch
-            elif ch == "}":
-                depth -= 1
-                if depth > 0:
-                    last_complete_pos = i + 1
-                last_non_ws = ch
-            elif ch == ",":
-                if depth == 1:
-                    last_complete_pos = i + 1
-                last_non_ws = ch
-            elif ch == ":":
-                if depth == 1:
-                    last_colon_pos = i
-                last_non_ws = ch
-            elif not ch.isspace():
-                last_non_ws = ch
-
-    if depth <= 0:
-        return fragment   # already valid/closed
-
-    result   = fragment + ('"' if in_string else "")
-    stripped = result.rstrip()
-    last_char = stripped[-1] if stripped else ""
-
-    def _close(base: str) -> str:
-        base = base.rstrip().rstrip(",")
-        return (base if base else "{") + "}" * depth
-
-    # Scenario C: ends with bare ':' — value completely absent
-    if last_char == ":":
-        return _close(stripped[:last_complete_pos])
-
-    # Scenario B: the unclosed/just-closed string was a KEY
-    if in_string and not open_string_is_val:
-        return _close(stripped[:last_complete_pos])
-
-    # Scenario A: value string truncated — close it and shut the braces
-    return _close(stripped)
+    # If we reached here, no valid JSON was found. 
+    # Treat the entire response as a direct answer (Normal Chat).
+    return {
+        "thought": "Direct response generated.",
+        "action": "ANSWER",
+        "answer": text_stripped
+    }
 
 
 def _truncate(data: Any, max_chars: int = MAX_OBS_CHARS) -> str:
@@ -237,36 +209,58 @@ def _truncate(data: Any, max_chars: int = MAX_OBS_CHARS) -> str:
 
 class InvestigationAgent:
     def __init__(self, model: str = DEFAULT_MODEL, max_steps: int = 6):
-        self.model = model
+        self.model     = model
         self.max_steps = max_steps
+        self._client: Optional[ollama.Client] = None
 
-    # ── Ollama health check ────────────────────────────────────────────────────
+    def _get_client(self) -> ollama.Client:
+        """Lazily initialise and cache the Ollama client."""
+        if self._client is None:
+            self._client = _build_client()
+        return self._client
+
+    # ── Ollama health / model listing ─────────────────────────────────────────
+
+    def _extract_model_names(self, response: Any) -> List[str]:
+        """Helper to extract model names from both old dict and new object responses."""
+        if hasattr(response, 'models'):
+            return [m.model for m in response.models]
+        if isinstance(response, dict):
+            return [m.get("name", m.get("model")) for m in response.get("models", [])]
+        return []
 
     def check_ollama(self) -> Tuple[bool, str]:
-        """Return (available: bool, model_name_or_error_message: str)."""
+        """Check Ollama connectivity and return current model."""
         try:
-            r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-            r.raise_for_status()
-            models = [m["name"] for m in r.json().get("models", [])]
-            if not models:
-                return False, "No models installed — run: ollama pull qwen2.5:7b"
-            preferred = [m for m in models if self.model.split(":")[0] in m]
-            self.model = preferred[0] if preferred else models[0]
+            client = self._get_client()
+            res = client.list()
+            available = self._extract_model_names(res)
+            if not available:
+                return False, "No models available in Ollama"
+            # Return model name if found or just true/the model we want
             return True, self.model
-        except requests.ConnectionError as e:
-            cause = str(e.__cause__ or e).split("\n")[0]
-            return False, f"Cannot reach Ollama at {OLLAMA_URL}: {cause}"
         except Exception as e:
-            return False, f"Ollama error ({type(e).__name__}): {e}"
+            return False, f"Ollama connectivity error: {e}"
 
     def list_models(self) -> List[str]:
-        """Return the list of locally installed Ollama model names."""
+        """Return the list of Ollama models."""
         try:
-            r = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
-            r.raise_for_status()
-            return [m["name"] for m in r.json().get("models", [])]
+            client = self._get_client()
+            res = client.list()
+            return self._extract_model_names(res)
         except Exception:
             return []
+
+    # ── Simple Chat ───────────────────────────────────────────────────────────
+
+    def chat(self, prompt: str, use_json: bool = False) -> str:
+        """One-off interaction with the AI model."""
+        client = self._get_client()
+        messages = [
+            {"role": "system", "content": "You are a professional digital forensics investigator."},
+            {"role": "user", "content": prompt}
+        ]
+        return ollama_chat(messages, self.model, client, use_json=use_json)
 
     # ── ReAct loop ─────────────────────────────────────────────────────────────
 
@@ -275,36 +269,24 @@ class InvestigationAgent:
         query: str,
         session_id: Optional[str] = None,
     ) -> Generator[Dict, None, None]:
-        """Execute the ReAct investigation loop.
-
-        Yields event dicts (suitable for SSE serialisation):
-          {"type": "session",  "session_id": str}
-          {"type": "step",     "step": int, "thought": str, "action": str,
-                               "args": dict, "observation": dict}
-          {"type": "answer",   "text": str, "session_id": str, "steps": int}
-          {"type": "error",    "message": str}
-        """
         if session_id is None:
             session_id = memory.create_session(query)
         yield {"type": "session", "session_id": session_id}
 
+        client = self._get_client()
+        system = _system_prompt(self.max_steps)
+
         messages: List[dict] = [
-            {"role": "system",  "content": _system_prompt(self.max_steps)},
-            {"role": "user",    "content": query},
+            {"role": "system", "content": system},
+            {"role": "user",   "content": query},
         ]
 
         for step in range(1, self.max_steps + 1):
-
-            # ── LLM call ──────────────────────────────────────────────────────
             try:
-                raw    = _ollama_chat(messages, self.model)
-                parsed = _parse_json(raw)
-            except requests.ConnectionError as e:
-                cause = str(e.__cause__ or e).split("\n")[0]
-                yield {"type": "error", "message": f"Lost connection to Ollama at {OLLAMA_URL}: {cause}"}
-                return
-            except Exception as e:
-                yield {"type": "error", "message": f"Step {step} LLM error: {e}"}
+                raw    = ollama_chat(messages, self.model, client, use_json=True)
+                parsed = parse_json(raw)
+            except Exception as exc:
+                yield {"type": "error", "message": f"Step {step} LLM error: {exc}"}
                 return
 
             thought = parsed.get("thought", "")
@@ -314,6 +296,8 @@ class InvestigationAgent:
             # ── Final answer ───────────────────────────────────────────────────
             if action == "ANSWER":
                 answer = parsed.get("answer") or thought
+                if not isinstance(answer, str):
+                    answer = json.dumps(answer, indent=2)
                 memory.add_episode(session_id, step, thought, "ANSWER", {}, {"answer": answer})
                 yield {
                     "type": "answer",
@@ -341,7 +325,6 @@ class InvestigationAgent:
                 "observation": observation,
             }
 
-            # Feed truncated observation back for the next LLM call
             obs_str = _truncate(observation)
             messages.append({"role": "assistant", "content": raw})
             messages.append({
@@ -354,7 +337,7 @@ class InvestigationAgent:
                 ),
             })
 
-        # ── Max steps reached: force final answer ──────────────────────────────
+        # ── Max steps reached ──────────────────────────────────────────────────
         messages.append({
             "role": "user",
             "content": (
@@ -364,9 +347,11 @@ class InvestigationAgent:
             ),
         })
         try:
-            raw    = _ollama_chat(messages, self.model)
-            parsed = _parse_json(raw)
+            raw    = ollama_chat(messages, self.model, client, use_json=True)
+            parsed = parse_json(raw)
             answer = parsed.get("answer") or parsed.get("thought", "Investigation complete.")
+            if not isinstance(answer, str):
+                answer = json.dumps(answer, indent=2)
             yield {
                 "type": "answer",
                 "text": answer,

@@ -37,9 +37,27 @@ class FilesystemAccessor:
 
         if os.path.isdir(path):
             self.mode = "local"
+        elif os.path.isfile(path):
+             # It's a file but not a directory - check if it's a disk image or just a regular file
+             if _HAS_PYTSK3:
+                try:
+                    self.img = pytsk3.Img_Info(path)
+                    self.fs = pytsk3.FS_Info(self.img)
+                    self.mode = "tsk"
+                except Exception:
+                    # Not a valid disk image, but it IS a local file.
+                    # We treat the parent as the 'root' or just allow reading it if we had a better way.
+                    # For now, most tools expect a directory root.
+                    self.mode = "local_file"
+                    self.path = path
+             else:
+                self.mode = "local_file"
+                self.path = path
         else:
+            if "*" in path:
+                raise RuntimeError(f"Wildcards (*) are not supported in forensic paths: {path}")
             if not _HAS_PYTSK3:
-                raise RuntimeError("pytsk3 is not available and path is not a mounted directory")
+                raise RuntimeError(f"Path does not exist and pytsk3 is not available: {path}")
             # attempt to open image with pytsk3
             try:
                 self.img = pytsk3.Img_Info(path)
@@ -47,7 +65,7 @@ class FilesystemAccessor:
                 self.fs = pytsk3.FS_Info(self.img)
                 self.mode = "tsk"
             except Exception as e:
-                raise RuntimeError(f"Failed to open image with pytsk3: {e}")
+                raise RuntimeError(f"Failed to open image with pytsk3 or path does not exist: {path}. Error: {e}")
 
     # Local helpers
     def _local_full(self, p: str) -> str:
@@ -59,6 +77,9 @@ class FilesystemAccessor:
     def exists(self, path: str) -> bool:
         if self.mode == "local":
             return os.path.exists(self._local_full(path))
+        if self.mode == "local_file":
+            # If they ask for "", it's the file. If they ask for the exact path or filename, it's the file.
+            return path == "" or path == "/" or path == self.path or path == os.path.basename(self.path)
         # TSK mode
         try:
             self.fs.open(path)
@@ -73,6 +94,8 @@ class FilesystemAccessor:
                 return os.listdir(full)
             except OSError:
                 return []
+        if self.mode == "local_file":
+            return [] # It's a file, not a dir
         # TSK mode
         try:
             dir_obj = self.fs.open_dir(path)
@@ -96,6 +119,13 @@ class FilesystemAccessor:
         if self.mode == "local":
             try:
                 with open(self._local_full(path), "rb") as f:
+                    return f.read(max_bytes)
+            except Exception:
+                return None
+        
+        if self.mode == "local_file":
+            try:
+                with open(self.path, "rb") as f:
                     return f.read(max_bytes)
             except Exception:
                 return None

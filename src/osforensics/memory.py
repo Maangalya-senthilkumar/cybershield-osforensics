@@ -199,6 +199,51 @@ def _parse_bash(data: Dict[str, Any]) -> List[MemoryBashEntry]:
     return entries
 
 
+def _carve_bash_memory(dump_path: str, max_entries: int = 500) -> List[MemoryBashEntry]:
+    """Scans the raw memory dump for likely bash history strings.
+    Pattern: : <timestamp>:<count>;<command>
+    """
+    import re
+    pattern = re.compile(rb': \d{10}:\d+;[^\n]{1,500}')
+    entries: List[MemoryBashEntry] = []
+    seen = set()
+
+    try:
+        file_size = os.path.getsize(dump_path)
+        with open(dump_path, "rb") as f:
+            chunk_size = 4 * 1024 * 1024
+            overlap = 1000
+            while len(entries) < max_entries:
+                chunk = f.read(chunk_size)
+                if not chunk:
+                    break
+                
+                for match in pattern.finditer(chunk):
+                    try:
+                        line = match.group(0).decode("utf-8", errors="ignore")
+                        if ";" in line:
+                            cmd = line.split(";", 1)[1].strip()
+                            if cmd and cmd not in seen:
+                                entries.append(MemoryBashEntry(
+                                    pid=0, 
+                                    process="carved_memory", 
+                                    command=cmd, 
+                                    is_carved=True
+                                ))
+                                seen.add(cmd)
+                    except:
+                        continue
+                    if len(entries) >= max_entries:
+                        break
+                
+                if f.tell() >= file_size:
+                    break
+                f.seek(f.tell() - overlap)
+    except:
+        pass
+    return entries
+
+
 # ── Malfind ───────────────────────────────────────────────────────────────────
 
 def _parse_malfind(data: Dict[str, Any]) -> List[MemoryMalfind]:
@@ -232,6 +277,42 @@ def _parse_lsmod(data: Dict[str, Any]) -> List[MemoryModule]:
         if name:
             modules.append(MemoryModule(name=name, size=size, offset=offset))
     return modules
+
+
+def _parse_maps(data: Dict[str, Any]) -> List[MemoryMap]:
+    maps: List[MemoryMap] = []
+    for r in _rows(data):
+        pid = _int(r.get("Pid") or r.get("PID"))
+        proc = _str(r.get("Process") or r.get("COMM"))
+        start = _str(r.get("Start"))
+        end = _str(r.get("End"))
+        path = _str(r.get("Path") or r.get("File Path"))
+        maps.append(MemoryMap(pid=pid, process=proc, start=start, end=end, path=path))
+    return maps
+
+
+def _parse_lsof(data: Dict[str, Any]) -> List[MemoryOpenFile]:
+    files: List[MemoryOpenFile] = []
+    for r in _rows(data):
+        pid = _int(r.get("Pid") or r.get("PID"))
+        proc = _str(r.get("Process") or r.get("COMM"))
+        fd = _int(r.get("FD") or r.get("fd"))
+        path = _str(r.get("Path") or r.get("File Path") or r.get("Full Path"))
+        if path:
+            files.append(MemoryOpenFile(pid=pid, process=proc, fd=fd, path=path))
+    return files
+
+
+def _parse_ifconfig(data: Dict[str, Any]) -> List[MemoryInterface]:
+    ifaces: List[MemoryInterface] = []
+    for r in _rows(data):
+        name = _str(r.get("Interface") or r.get("Name"))
+        ip = _str(r.get("IP Address") or r.get("IP"))
+        mac = _str(r.get("MAC Address") or r.get("MAC"))
+        flags = _str(r.get("Flags"))
+        if name:
+            ifaces.append(MemoryInterface(name=name, ip=ip, mac=mac, flags=flags))
+    return ifaces
 
 
 # ── Cmdline ───────────────────────────────────────────────────────────────────
@@ -349,6 +430,14 @@ def analyze_memory(dump_path: str) -> MemoryReport:
     elif bash_data.get("error"):
         errors.append(f"bash: {bash_data['error']}")
     bash_history = _parse_bash(bash_data)
+    
+    # ── bash history carving (deep recovery) ──────────────────────
+    carved_entries = _carve_bash_memory(dump_path)
+    # Deduplicate against pslist-recovered history
+    existing_cmds = {e.command for e in bash_history}
+    for e in carved_entries:
+        if e.command not in existing_cmds:
+            bash_history.append(e)
 
     # ── malfind ───────────────────────────────────────────────────
     malfind_data = _run_plugin(vol, dump_path, "linux.malfind.Malfind")
@@ -357,6 +446,30 @@ def analyze_memory(dump_path: str) -> MemoryReport:
     elif malfind_data.get("error"):
         errors.append(f"malfind: {malfind_data['error']}")
     malfind = _parse_malfind(malfind_data)
+
+    # ── maps ──────────────────────────────────────────────────────
+    maps_data = _run_plugin(vol, dump_path, "linux.proc.Maps")
+    if _check_sym("maps", maps_data):
+        symbol_errors.append("maps")
+    elif maps_data.get("error"):
+        errors.append(f"maps: {maps_data['error']}")
+    shared_libraries = _parse_maps(maps_data)
+
+    # ── lsof ──────────────────────────────────────────────────────
+    lsof_data = _run_plugin(vol, dump_path, "linux.lsof.Lsof")
+    if _check_sym("lsof", lsof_data):
+        symbol_errors.append("lsof")
+    elif lsof_data.get("error"):
+        errors.append(f"lsof: {lsof_data['error']}")
+    open_files = _parse_lsof(lsof_data)
+
+    # ── ifconfig ──────────────────────────────────────────────────
+    ifconfig_data = _run_plugin(vol, dump_path, "linux.ifconfig.Ifconfig")
+    if _check_sym("ifconfig", ifconfig_data):
+        symbol_errors.append("ifconfig")
+    elif ifconfig_data.get("error"):
+        errors.append(f"ifconfig: {ifconfig_data['error']}")
+    interfaces = _parse_ifconfig(ifconfig_data)
 
     # ── lsmod ─────────────────────────────────────────────────────
     lsmod_data = _run_plugin(vol, dump_path, "linux.lsmod.Lsmod")
@@ -387,6 +500,9 @@ def analyze_memory(dump_path: str) -> MemoryReport:
         "bash_entries":         len(bash_history),
         "malfind_count":        len(malfind),
         "module_count":         len(modules),
+        "shared_libraries":     len(shared_libraries),
+        "open_files":           len(open_files),
+        "interface_count":      len(interfaces),
         "suspicious_names":     len(suspicious_procs),
         "total_high":           len(hidden_processes) + len(malfind) + len(external_conns),
         "plugin_errors":        len(errors),
@@ -416,5 +532,8 @@ def analyze_memory(dump_path: str) -> MemoryReport:
         bash_history=bash_history,
         malfind=malfind,
         modules=modules,
+        shared_libraries=shared_libraries,
+        open_files=open_files,
+        interfaces=interfaces,
         summary=summary,
     )

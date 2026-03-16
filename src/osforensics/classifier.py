@@ -21,11 +21,44 @@ RISK_MAP: Dict[str, str] = {
     "ssh": "infrastructure",
 }
 
+# Tool categories for better organization
+CATEGORY_MAP: Dict[str, str] = {
+    "metasploit": "attack",
+    "sqlmap": "attack",
+    "hydra": "attack",
+    "nmap": "network",
+    "netcat": "network",
+    "burpsuite": "web",
+    "tor": "privacy",
+    "openvpn": "privacy",
+    "wireguard": "privacy",
+    "proxychains": "privacy",
+    "ssh": "network",
+}
+
+# Risk level priority for sorting (higher number = higher priority)
+RISK_PRIORITY: Dict[str, int] = {
+    "high": 3,
+    "dual-use": 2,
+    "privacy-infrastructure": 1,
+    "infrastructure": 0,
+    "unknown": -1,
+}
+
 
 def classify_findings(findings: List[Dict[str, object]]) -> List[Dict[str, object]]:
     out = []
     for f in findings:
         tool = f.get("tool")
         level = RISK_MAP.get(tool, "unknown")
-        out.append({"tool": tool, "risk": level, "evidence": f.get("evidence", [])})
+        category = CATEGORY_MAP.get(tool, "other")
+        out.append({
+            "tool": tool, 
+            "risk": level, 
+            "category": category,
+            "evidence": f.get("evidence", [])
+        })
+
+    # Sort by risk priority (high to low) then alphabetically by tool name
+    out.sort(key=lambda x: (-RISK_PRIORITY.get(x["risk"], -1), x["tool"].lower()))
     return out

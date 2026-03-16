@@ -11,6 +11,7 @@ from pydantic import BaseModel
 class ToolFinding(BaseModel):
     tool: str
     risk: str
+    category: str
     evidence: List[str]
 
 
@@ -127,14 +128,23 @@ class MediaFinding(BaseModel):
     thumbnail: Optional[Dict[str, Any]] = None
 
 
-# ── Tails OS models ──────────────────────────────────────────────────────────
-
 class TailsFinding(BaseModel):
     source: str
     category: str
     detail: str
     severity: str = "info"
     evidence: List[str] = []
+
+
+# ── Anti-forensics models ────────────────────────────────────────────────────
+
+class AntiForensicsFinding(BaseModel):
+    category: str                         # "timestomping" | "wiping" | "hiding" | "packing"
+    technique: str
+    detail: str
+    severity: str = "high"
+    evidence: List[str] = []
+    path: Optional[str] = None
 
 
 # ── Memory forensics models ───────────────────────────────────────────────────
@@ -165,6 +175,7 @@ class MemoryBashEntry(BaseModel):
     pid: int = 0
     process: str = ""
     command: str = ""
+    is_carved: bool = False
 
 
 class MemoryMalfind(BaseModel):
@@ -182,6 +193,28 @@ class MemoryModule(BaseModel):
     offset: str = ""
 
 
+class MemoryMap(BaseModel):
+    pid: int = 0
+    process: str = ""
+    start: str = ""
+    end: str = ""
+    path: str = ""
+
+
+class MemoryOpenFile(BaseModel):
+    pid: int = 0
+    process: str = ""
+    fd: int = 0
+    path: str = ""
+
+
+class MemoryInterface(BaseModel):
+    name: str = ""
+    ip: str = ""
+    mac: str = ""
+    flags: str = ""
+
+
 class MemoryReport(BaseModel):
     dump_path: str = ""
     volatility_available: bool = False
@@ -195,6 +228,10 @@ class MemoryReport(BaseModel):
     bash_history: List[MemoryBashEntry] = []
     malfind: List[MemoryMalfind] = []
     modules: List[MemoryModule] = []
+    shared_libraries: List[MemoryMap] = []
+    open_files: List[MemoryOpenFile] = []
+    interfaces: List[MemoryInterface] = []
+    antiforensics: List[AntiForensicsFinding] = []
     summary: Dict[str, Any] = {}
 
 
@@ -212,6 +249,9 @@ class ForensicReport(BaseModel):
     browsers: List[BrowserProfile] = []
     multimedia: List[MediaFinding] = []
     tails: List[TailsFinding] = []
+    tails_artifacts: Dict[str, Any] = {}  # Structured artifact data from Tails analysis
+    antiforensics: List[AntiForensicsFinding] = []
+    containers: Dict[str, Any] = {}
 
 
 def build_report(
@@ -225,6 +265,9 @@ def build_report(
     browsers: Optional[List[Dict]] = None,
     multimedia: Optional[List[Dict]] = None,
     tails: Optional[List[Dict]] = None,
+    tails_artifacts: Optional[Dict[str, Any]] = None,
+    antiforensics: Optional[List[Dict]] = None,
+    containers: Optional[Dict[str, Any]] = None,
 ) -> ForensicReport:
     os_model = OSInfo(
         name=os_info.get("name"),
@@ -234,7 +277,7 @@ def build_report(
     )
 
     tool_findings = [
-        ToolFinding(tool=f["tool"], risk=f.get("risk", "unknown"), evidence=f.get("evidence", []))
+        ToolFinding(tool=f["tool"], risk=f.get("risk", "unknown"), category=f.get("category", "other"), evidence=f.get("evidence", []))
         for f in classified_findings
     ]
 
@@ -270,6 +313,11 @@ def build_report(
         TailsFinding(**t) for t in (tails or [])
     ]
 
+    antiforensics_findings = [
+        a if isinstance(a, AntiForensicsFinding) else AntiForensicsFinding(**a)
+        for a in (antiforensics or [])
+    ]
+
     high_timeline  = sum(1 for e in timeline_events  if e.severity == "high")
     high_deleted   = sum(1 for d in deleted_findings  if d.severity == "high")
     high_persist   = sum(1 for p in persistence_findings if p.severity == "high")
@@ -277,6 +325,11 @@ def build_report(
     high_services  = sum(1 for s in service_findings if s.severity in ("high", "critical"))
     high_multimedia = sum(1 for m in media_findings if m.severity in ("high", "critical"))
     high_tails = sum(1 for t in tails_findings if t.severity in ("high", "critical"))
+    high_af = sum(1 for a in antiforensics_findings if a.severity in ("high", "critical"))
+    container_report = containers or {}
+    container_detected = bool(container_report.get("detected"))
+    container_count = int(((container_report.get("risk") or {}).get("container_count") or 0))
+    high_containers = len(((container_report.get("risk") or {}).get("high_risk_containers") or []))
 
     summary = {
         "total_tools":         len(tool_findings),
@@ -300,7 +353,12 @@ def build_report(
         "high_multimedia":     high_multimedia,
         "tails_findings":      len(tails_findings),
         "high_tails":          high_tails,
-        "total_high":          sum(1 for f in tool_findings if f.risk == "high") + high_timeline + high_deleted + high_persist + high_config + high_services + sum(1 for b in browser_profiles if b.severity in ("high", "critical")) + high_multimedia + high_tails,
+        "antiforensics_count": len(antiforensics_findings),
+        "high_antiforensics":  high_af,
+        "container_detected":  container_detected,
+        "container_count":     container_count,
+        "high_containers":     high_containers,
+        "total_high":          sum(1 for f in tool_findings if f.risk == "high") + high_timeline + high_deleted + high_persist + high_config + high_services + sum(1 for b in browser_profiles if b.severity in ("high", "critical")) + high_multimedia + high_tails + high_af + high_containers,
     }
 
     return ForensicReport(
@@ -315,4 +373,7 @@ def build_report(
         browsers=browser_profiles,
         multimedia=media_findings,
         tails=tails_findings,
+        tails_artifacts=tails_artifacts or {},
+        antiforensics=antiforensics_findings,
+        containers=container_report,
     )

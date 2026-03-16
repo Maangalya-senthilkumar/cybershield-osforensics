@@ -613,6 +613,7 @@ CARVE_SIGNATURES = [
     ("Shell-script", "sh",    b"#!/bin/sh",                     None,                     1 * _MB,  "text"),
     ("Bash-script",  "sh",    b"#!/bin/bash",                   None,                     1 * _MB,  "text"),
     ("Python-script","py",    b"#!/usr/bin/python",             None,                     1 * _MB,  "text"),
+    ("Bash-history", "txt",   b": 1",                           None,                     10 * _MB, "text"),
 ]
 
 # Human-readable groups shown in the UI

@@ -384,6 +384,72 @@ def _lsb_entropy_check(raw_bytes: bytes) -> Tuple[float, Optional[str]]:
     return entropy, msg
 
 
+def _lsb_plane_entropy(data: bytes, max_samples: int = 200_000) -> Tuple[float, float]:
+    """Return (entropy_bits, p_one) for the least-significant-bit plane.
+
+    This is a coarse heuristic: many steganography tools randomise the LSB
+    plane, driving its entropy close to 1.0 bit with a near 50/50 split of
+    0/1 values. We compute:
+      - p_one: proportion of 1 bits in the sampled LSBs
+      - entropy_bits: Shannon entropy of the Bernoulli(p_one) distribution
+    """
+    if not data:
+        return 0.0, 0.0
+    sample = data[:max_samples]
+    n = len(sample)
+    ones = sum(b & 1 for b in sample)
+    p_one = ones / n
+    p_zero = 1.0 - p_one
+    entropy = 0.0
+    if 0.0 < p_one < 1.0:
+        entropy -= p_one * math.log2(p_one)
+    if 0.0 < p_zero < 1.0:
+        entropy -= p_zero * math.log2(p_zero)
+    return entropy, p_one
+
+
+def _lsb_stego_indicator(raw_bytes: bytes, ext: str) -> Optional[str]:
+    """Heuristic LSB-plane steganography indicator for common raster formats.
+
+    Uses the LSB plane entropy and bias; flags highly random, near 50/50
+    LSB distributions that are often produced by LSB embedding schemes.
+    """
+    if ext not in (".jpg", ".jpeg", ".png", ".bmp"):
+        return None
+    if len(raw_bytes) < 10_000:
+        return None
+
+    # Prefer decoded pixel bytes when Pillow is available; fall back to the
+    # container bytes otherwise (still a useful signal for many images).
+    data: bytes
+    if _HAS_PIL:
+        try:
+            img = _PILImage.open(io.BytesIO(raw_bytes))
+            data = img.tobytes()
+        except Exception:
+            data = raw_bytes
+    else:
+        data = raw_bytes
+
+    if len(data) < 10_000:
+        return None
+
+    ent, p_one = _lsb_plane_entropy(data)
+    # Store into metadata at the call-site; here we only decide on flags.
+    # Only flag when both entropy is high and the balance is close to 50/50.
+    if ent >= 0.97 and 0.45 <= p_one <= 0.55:
+        return (
+            f"LSB plane looks randomly distributed (entropy {ent:.3f} bits, "
+            f"p(1)={p_one:.3f}) — possible LSB steganography"
+        )
+    if ent >= 0.9 and 0.40 <= p_one <= 0.60:
+        return (
+            f"Elevated LSB-plane entropy (entropy {ent:.3f} bits, p(1)={p_one:.3f}) "
+            f"— potential steganographic modification"
+        )
+    return None
+
+
 # ── File integrity / tampering detection ─────────────────────────────────────
 
 def _check_timestamp_mismatch(
@@ -658,6 +724,28 @@ def _analyse_file(
         if entropy_msg:
             findings.append(entropy_msg)
             _flag(flags, "high-entropy", "")
+            result["severity"] = _max_sev(result["severity"], "medium")
+
+        # LSB-plane steganography heuristics (on decoded pixels when possible)
+        # Also capture quantitative metrics for UI display.
+        if _HAS_PIL:
+            try:
+                _img = _PILImage.open(io.BytesIO(raw))
+                pixel_bytes = _img.tobytes()
+            except Exception:
+                pixel_bytes = raw
+        else:
+            pixel_bytes = raw
+
+        if len(pixel_bytes) >= 10_000:
+            lsb_entropy, lsb_p_one = _lsb_plane_entropy(pixel_bytes)
+            result["metadata"]["lsb_entropy_bits"] = round(lsb_entropy, 4)
+            result["metadata"]["lsb_p_one"] = round(lsb_p_one, 4)
+
+        lsb_msg = _lsb_stego_indicator(raw, ext)
+        if lsb_msg:
+            findings.append(lsb_msg)
+            _flag(flags, "lsb-stego-suspected", "")
             result["severity"] = _max_sev(result["severity"], "medium")
 
         appended = _detect_appended_data(raw, ext)

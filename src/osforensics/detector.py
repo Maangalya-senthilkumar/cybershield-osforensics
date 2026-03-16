@@ -81,15 +81,15 @@ def detect_os(fs: FilesystemAccessor) -> Dict[str, object]:
 
 
 TOOL_SIGNATURES: Dict[str, List[str]] = {
-    # tool_name: list of filename fragments or package names to look for
+    # tool_name: list of exact filename matches to look for
     "tor": ["tor", "tor-browser", "torrc"],
     "openvpn": ["openvpn", "ovpn"],
-    "wireguard": ["wireguard", "wg-quick"],
+    "wireguard": ["wg", "wg-quick", "wireguard"],
     "nmap": ["nmap"],
-    "metasploit": ["metasploit", "msfconsole", "msfvenom"],
+    "metasploit": ["msfconsole", "msfvenom", "metasploit"],
     "sqlmap": ["sqlmap"],
-    "burpsuite": ["burpsuite", "burp"],
-    "ssh": ["sshd_config", "sshd"],
+    "burpsuite": ["burp", "burpsuite"],
+    "ssh": ["sshd"],
     "proxychains": ["proxychains"],
     "netcat": ["nc", "netcat"],
     "hydra": ["hydra"],
@@ -100,22 +100,35 @@ def detect_tools(fs: FilesystemAccessor) -> List[Dict[str, object]]:
     findings = []
 
     # Search a set of common directories for tool binaries/configs
-    search_paths = ["/usr/bin", "/usr/sbin", "/bin", "/sbin", "/opt", "/usr/local/bin", "/home"]
+    search_paths = ["/usr/bin", "/usr/sbin", "/bin", "/sbin", "/opt", "/usr/local/bin"]
 
     for tool, signs in TOOL_SIGNATURES.items():
         found = False
         evidence: List[str] = []
-        # check typical file locations
+        # check typical file locations with exact matching
         for sp in search_paths:
-            entries = fs.list_dir(sp)
-            for name in entries:
-                lower = name.lower()
-                for sign in signs:
-                    if sign in lower:
-                        found = True
-                        evidence.append(f"{sp}/{name}")
+            try:
+                entries = fs.list_dir(sp)
+                for name in entries:
+                    lower = name.lower()
+                    for sign in signs:
+                        sign_lower = sign.lower()
+                        # Exact match
+                        if lower == sign_lower:
+                            found = True
+                            evidence.append(f"{sp}/{name}")
+                            break
+                        # For tools that might have extensions or prefixes, check if the base name matches
+                        elif lower.startswith(sign_lower) and (lower.endswith(sign_lower) or lower.endswith(sign_lower + '.exe') or lower.endswith(sign_lower + '.bin')):
+                            found = True
+                            evidence.append(f"{sp}/{name}")
+                            break
+            except:
+                # Skip directories that don't exist or can't be read
+                continue
+
         # examine config/known files
-        if fs.exists("/etc/tor/torrc") and tool == "tor":
+        if tool == "tor" and fs.exists("/etc/tor/torrc"):
             found = True
             evidence.append("/etc/tor/torrc")
 
