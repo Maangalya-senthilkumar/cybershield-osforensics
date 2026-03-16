@@ -1,0 +1,345 @@
+{
+  "meta": {
+    "tool": "tails_volume_deep_scan",
+    "version": "1.0",
+    "generated_utc": "2026-03-16T21:19:42.047780+00:00",
+    "host": "SUSHANKYA",
+    "duration_seconds": 0.008
+  },
+  "input": {
+    "mount_path": "/home/aparichit/TailsData"
+  },
+  "mount": {
+    "mount_path": "/home/aparichit/TailsData",
+    "exists": true,
+    "is_dir": true,
+    "device": "/dev/mapper/luks-de44407a-365e-4dd8-94da-55c607299e1d",
+    "fstype": "ext4",
+    "mount_opts": "rw,relatime",
+    "statvfs": {
+      "total_bytes": 6682447872,
+      "used_bytes": 4218880,
+      "free_bytes": 6678228992,
+      "available_bytes": 6317047808
+    }
+  },
+  "artifacts": {
+    "filesystem_inventory": {
+      "counts": {
+        "files": 10,
+        "dirs": 13,
+        "symlinks": 0,
+        "other": 5,
+        "errors": 0,
+        "scanned_entries": 27,
+        "truncated": false
+      },
+      "top_extensions": [
+        [
+          ".conf",
+          4
+        ],
+        [
+          "<no_ext>",
+          2
+        ],
+        [
+          ".kbx~",
+          1
+        ],
+        [
+          ".gpg",
+          1
+        ],
+        [
+          ".db",
+          1
+        ],
+        [
+          ".kbx",
+          1
+        ]
+      ],
+      "file_types": {
+        "other": 7,
+        "keys": 2,
+        "databases": 1
+      },
+      "top_dirs_by_file_count": [
+        [
+          "gnupg",
+          12
+        ],
+        [
+          ".",
+          1
+        ],
+        [
+          "apt",
+          1
+        ],
+        [
+          "electrum",
+          1
+        ],
+        [
+          "bookmarks",
+          0
+        ],
+        [
+          "Persistent",
+          0
+        ],
+        [
+          "openssh-client",
+          0
+        ],
+        [
+          "lost+found",
+          0
+        ],
+        [
+          "dont-ask-again",
+          0
+        ]
+      ],
+      "largest_files": [
+        {
+          "size": 1197568,
+          "path": "gnupg/pubring.kbx"
+        },
+        {
+          "size": 1192030,
+          "path": "gnupg/pubring.kbx~"
+        },
+        {
+          "size": 49152,
+          "path": "gnupg/tofu.db"
+        },
+        {
+          "size": 1987,
+          "path": "gnupg/gpg.conf"
+        },
+        {
+          "size": 1200,
+          "path": "gnupg/trustdb.gpg"
+        },
+        {
+          "size": 293,
+          "path": "persistence.conf"
+        },
+        {
+          "size": 113,
+          "path": "electrum/config"
+        },
+        {
+          "size": 87,
+          "path": "gnupg/dirmngr.conf"
+        },
+        {
+          "size": 8,
+          "path": "gnupg/gpg-agent.conf"
+        },
+        {
+          "size": 0,
+          "path": "apt/cache/lock"
+        }
+      ],
+      "timeline": [
+        {
+          "ts": "2026-02-10T15:50:56.168000+00:00",
+          "event": "modified",
+          "path": "persistence.conf",
+          "size": 293
+        },
+        {
+          "ts": "2026-02-10T15:45:56.960000+00:00",
+          "event": "modified",
+          "path": "gnupg/trustdb.gpg",
+          "size": 1200
+        },
+        {
+          "ts": "2026-02-10T15:45:56.956000+00:00",
+          "event": "modified",
+          "path": "gnupg/pubring.kbx",
+          "size": 1197568
+        },
+        {
+          "ts": "2026-02-10T15:45:56.912000+00:00",
+          "event": "modified",
+          "path": "gnupg/pubring.kbx~",
+          "size": 1192030
+        },
+        {
+          "ts": "2026-02-10T15:45:56.884000+00:00",
+          "event": "modified",
+          "path": "gnupg/tofu.db",
+          "size": 49152
+        },
+        {
+          "ts": "2026-02-10T15:45:38.428000+00:00",
+          "event": "modified",
+          "path": "gnupg/gpg.conf",
+          "size": 1987
+        },
+        {
+          "ts": "2026-02-10T15:45:38.424000+00:00",
+          "event": "modified",
+          "path": "gnupg/gpg-agent.conf",
+          "size": 8
+        },
+        {
+          "ts": "2026-02-10T15:45:38.420000+00:00",
+          "event": "modified",
+          "path": "gnupg/dirmngr.conf",
+          "size": 87
+        },
+        {
+          "ts": "2026-02-10T15:45:38.380000+00:00",
+          "event": "modified",
+          "path": "electrum/config",
+          "size": 113
+        },
+        {
+          "ts": "2026-02-10T15:45:17+00:00",
+          "event": "modified",
+          "path": "apt/cache/lock",
+          "size": 0
+        }
+      ]
+    },
+    "persistence": {
+      "found": true,
+      "path": "/home/aparichit/TailsData/persistence.conf",
+      "modules": [],
+      "raw_preview": [
+        "/home/amnesia/.electrum\tsource=electrum",
+        "/home/amnesia/.gnupg\tsource=gnupg",
+        "/home/amnesia/.mozilla/firefox/bookmarks\tsource=bookmarks",
+        "/home/amnesia/.ssh\tsource=openssh-client",
+        "/home/amnesia/Persistent\tsource=Persistent",
+        "/var/cache/apt/archives\tsource=apt/cache",
+        "/var/lib/apt/lists\tsource=apt/lists"
+      ]
+    },
+    "interesting_paths": {
+      "wallet_paths": [
+        "electrum",
+        "electrum/config"
+      ],
+      "tails_markers": [
+        "persistence.conf"
+      ],
+      "key_paths": [
+        "gnupg/private-keys-v1.d",
+        "gnupg/S.gpg-agent.ssh"
+      ]
+    },
+    "text_scan": {
+      "text_files_scanned": 6,
+      "onion_addresses": [
+        "zkaan2xfbuxia2wpf7ofnkbz6r5zdbbvxbunvp5g2iebopbfc4iqmbad.onion"
+      ],
+      "btc_like_strings": [],
+      "eth_like_strings": [
+        "0xD8692123C4065DEA5E0F3AB5249B39D24F25E3B6"
+      ],
+      "xmr_like_strings": [],
+      "ip_addresses": [],
+      "suspicious_lines": [
+        {
+          "path": "persistence.conf",
+          "line": "/home/amnesia/.ssh\tsource=openssh-client"
+        }
+      ],
+      "bridge_related_lines": [],
+      "hidden_service_lines": []
+    },
+    "key_wallet_browser": {
+      "key_files": [
+        {
+          "path": "gnupg/trustdb.gpg",
+          "size": 1200
+        },
+        {
+          "path": "gnupg/pubring.kbx",
+          "size": 1197568
+        }
+      ],
+      "wallet_files": [
+        {
+          "path": "electrum/config",
+          "size": 113
+        }
+      ],
+      "browser_files": []
+    },
+    "mount_root_listing": [
+      "Persistent",
+      "apt",
+      "bookmarks",
+      "dont-ask-again",
+      "electrum",
+      "gnupg",
+      "lost+found",
+      "openssh-client",
+      "persistence.conf"
+    ],
+    "largest_file_hash_samples": [
+      {
+        "path": "gnupg/pubring.kbx",
+        "sha256_first_bytes": "6b645390729bb0cc4a45f77f566346df194ff9c7af40589551bfd1289b23e0f9"
+      },
+      {
+        "path": "gnupg/pubring.kbx~",
+        "sha256_first_bytes": "e97c4bafbd9b14137a0d503dfe8da6622d1e8ac111e929ebe9e1e9004a93160f"
+      },
+      {
+        "path": "gnupg/tofu.db",
+        "sha256_first_bytes": "808f3138c7720130d458713f79032d65dd8ebbe8f85eca814599f2154acff308"
+      },
+      {
+        "path": "gnupg/gpg.conf",
+        "sha256_first_bytes": "b014d237e5f4766ce384080d55494a33b202aab4641aa7596249afe3f5d03589"
+      },
+      {
+        "path": "gnupg/trustdb.gpg",
+        "sha256_first_bytes": "8be6814213e27e41e8235e99a0b5434ce40d214dd893b5caef2454df27999db9"
+      },
+      {
+        "path": "persistence.conf",
+        "sha256_first_bytes": "75d755ba456285ad02551d5fbffe70c942225a0bfec9dc86a1690f35c2663749"
+      },
+      {
+        "path": "electrum/config",
+        "sha256_first_bytes": "c9278fbfbe89203d8a7b16d98c5deb2d803e3b83f64305ba8ae3c7b98aefa998"
+      },
+      {
+        "path": "gnupg/dirmngr.conf",
+        "sha256_first_bytes": "00e6c32e7b965019a98b1975498eed74e54d6bfc1ac15bf9f27ad32f4e904237"
+      },
+      {
+        "path": "gnupg/gpg-agent.conf",
+        "sha256_first_bytes": "19f90147378ce2b11526b5edb5dfee1f6dcd52420b749b6411202d58244230ec"
+      },
+      {
+        "path": "apt/cache/lock",
+        "sha256_first_bytes": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      }
+    ]
+  },
+  "summary": {
+    "status": "ok",
+    "risk": {
+      "score": 55,
+      "max": 100,
+      "risk_level": "high",
+      "reasons": [
+        "Onion addresses detected (1)",
+        "Suspicious command lines found (1)",
+        "Identity/key artifacts found (2)",
+        "Cryptocurrency wallet indicators found"
+      ]
+    }
+  }
+}
