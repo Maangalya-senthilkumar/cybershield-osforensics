@@ -129,13 +129,7 @@ def favicon():
     """Return an empty favicon response to avoid browser 404 noise."""
     return Response(status_code=204)
 
-@app.get("/health", include_in_schema=False)
-def health():
-    """Liveness probe used by the Electron main process to know the backend is ready."""
-    return {"status": "ok", "version": "0.1.0"}
-
-
-# Allow the UI dev server and Electron renderer (file:// → Origin: null) to call the API.
+# Allow the UI dev server to call this API during development
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -145,8 +139,6 @@ app.add_middleware(
         "http://127.0.0.1:3000",
         "http://localhost:8000",
         "http://127.0.0.1:8000",
-        # Electron production: file:// sends Origin: null
-        "null",
     ],
     allow_credentials=True,
     allow_methods=["*"],
