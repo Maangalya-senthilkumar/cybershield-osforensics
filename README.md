@@ -1,7 +1,7 @@
 OS Forensics — Prototype
 =========================
 
-This repository contains a prototype forensic analysis backend that uses
+This repository contains a prototype forensic analysis backend  and frontend that uses
 Sleuth Kit (pytsk3) where available, or a mounted filesystem for
 development. It exposes a FastAPI endpoint to analyze an image or a mounted
 filesystem directory and returns a structured JSON forensic report.
